@@ -1,0 +1,132 @@
+kind: ZarfPackageConfig
+metadata:
+  name: monitoring
+  version: 0.1.0+261010
+  description: Prometheus, Grafana, Loki, and Linkerd Viz for OpenDefence
+values:
+  files:
+    - values/values.yaml
+  schema: values/values.schema.json
+components:
+  - name: namespace
+    required: true
+    manifests:
+      - name: namespace
+        files:
+          - manifests/namespace.yaml
+  - name: prometheus-operator-crds
+    required: true
+    manifests:
+      - name: prometheus-operator-crds
+        serverSideApply: "true"
+        files:
+          - https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.91.0/stripped-down-crds.yaml
+  - name: prometheus-operator
+    required: true
+    manifests:
+      - name: prometheus-operator
+        namespace: monitoring
+        kustomizations:
+          - manifests/prometheus-operator
+    healthChecks:
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: prometheus-operator
+        namespace: monitoring
+  - name: grafana-operator
+    required: true
+    manifests:
+      - name: grafana-operator
+        serverSideApply: "true"
+        files:
+          - https://github.com/grafana/grafana-operator/releases/download/v5.22.2/kustomize-cluster_scoped.yaml
+    healthChecks:
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: grafana-operator-controller-manager
+        namespace: grafana
+  - name: kube-state-metrics
+    required: true
+    manifests:
+      - name: kube-state-metrics
+        namespace: monitoring
+        kustomizations:
+          - manifests/kube-state-metrics
+  - name: prometheus
+    required: true
+    manifests:
+      - name: prometheus
+        namespace: monitoring
+        files:
+          - manifests/prometheus/permissions.yaml
+          - manifests/prometheus/prometheus-instance.yaml
+          - manifests/prometheus/alertmanager.yaml
+          - manifests/prometheus/node-exporter.yaml
+          - manifests/prometheus/node-exporter-service-monitor.yaml
+          - manifests/prometheus/service-monitor.yaml
+          - manifests/prometheus/kubernetes-control-plane-service-monitors.yaml
+          - manifests/prometheus/kube-state-metrics-service-monitor.yaml
+          - manifests/prometheus/linkerd-scrapeconfigs.yaml
+          - manifests/prometheus/cluster-alerts.yaml
+  - name: loki
+    required: true
+    charts:
+      - name: loki
+        releaseName: opendefence-loki
+        namespace: monitoring
+        version: 17.1.0
+        url: https://grafana-community.github.io/helm-charts
+        valuesFiles:
+          - helm-values/loki.yaml
+  - name: alloy
+    required: true
+    manifests:
+      - name: alloy
+        namespace: monitoring
+        files:
+          - manifests/alloy.yaml
+  - name: grafana
+    required: true
+    manifests:
+      - name: grafana
+        namespace: monitoring
+        files:
+          - manifests/grafana/grafana-secrets.yaml
+          - manifests/grafana/grafana.yaml
+          - manifests/grafana/datasources.yaml
+  # Zarf Go-templates every manifest in a component when one of them sets template, so the ingress files stay separate from the ExternalSecret password line.
+  - name: grafana-ingress
+    required: true
+    manifests:
+      - name: grafana-ingress
+        namespace: monitoring
+        template: true
+        files:
+          - manifests/grafana/certificate.yaml
+          - manifests/grafana/ingressroute.yaml
+  - name: linkerd-viz-namespace
+    required: true
+    manifests:
+      - name: linkerd-viz-namespace
+        files:
+          - manifests/linkerd-viz/namespace.yaml
+  - name: linkerd-viz
+    required: true
+    charts:
+      - name: linkerd-viz
+        releaseName: linkerd-viz
+        namespace: linkerd-viz
+        version: 30.12.11
+        url: https://helm.linkerd.io/stable
+        valuesFiles:
+          - helm-values/linkerd-viz.yaml
+  - name: dashboards
+    description: Kubernetes and pod-log Grafana dashboards
+    default: true
+    required: false
+    manifests:
+      - name: dashboards
+        namespace: monitoring
+        files:
+          - manifests/dashboards/prometheus.yaml
+          - manifests/dashboards/logs.yaml

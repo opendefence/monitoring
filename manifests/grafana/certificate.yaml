@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  secretName: grafana-tls # pragma: allowlist secret
+  issuerRef:
+    name: public-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages: [digital signature, key encipherment, server auth]
+  dnsNames:
+    - "{{ .Values.grafana.host }}"

@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.grafana.host }}`)
+      kind: Rule
+      services:
+        - name: grafana-service
+          port: 3000
+  tls:
+    secretName: grafana-tls # pragma: allowlist secret

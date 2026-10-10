@@ -1,0 +1,2 @@
+manifests/grafana/certificate.yaml
+manifests/grafana/ingressroute.yaml

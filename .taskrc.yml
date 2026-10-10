@@ -1,0 +1,8 @@
+# Taskfile.yaml includes opendefence/base taskfiles from git.
+# Trust the host so CI can fetch them without a prompt.
+experiments:
+  REMOTE_TASKFILES: 1
+
+remote:
+  trusted-hosts:
+    - raw.githubusercontent.com

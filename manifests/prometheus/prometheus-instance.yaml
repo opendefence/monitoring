@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  serviceAccountName: prometheus
+  externalLabels:
+    cluster: opendefence
+
+  retention: 30d
+  retentionSize: 15GiB
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+
+  serviceMonitorSelector:
+    matchLabels:
+      monitoring: prometheus
+
+  # Selects the Linkerd ScrapeConfig resources (resources/linkerd-scrapeconfigs.yaml).
+  scrapeConfigSelector:
+    matchLabels:
+      monitoring: prometheus
+
+  ruleSelector:
+    matchLabels:
+      monitoring: prometheus
+
+  alerting:
+    alertmanagers:
+      - namespace: monitoring
+        name: alertmanager-operated
+        port: web
