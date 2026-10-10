@@ -1,7 +1,7 @@
 kind: ZarfPackageConfig
 metadata:
   name: monitoring
-  version: 0.1.0+261010
+  version: 0.2.0+261011
   description: Prometheus, Grafana, Loki, and Linkerd Viz for OpenDefence
 values:
   files:
