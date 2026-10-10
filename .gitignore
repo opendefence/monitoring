@@ -2,3 +2,10 @@
 .prettier_cache
 .idea
 *cache*
+
+# Task remote-include cache
+.task/
+
+.build/
+*.tar.zst
+zarf-sbom/

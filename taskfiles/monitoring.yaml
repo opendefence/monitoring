@@ -1,0 +1,56 @@
+version: "3"
+
+includes:
+  base:
+    taskfile: https://raw.githubusercontent.com/opendefence/base/main/taskfiles/base.yaml
+    dir: "{{.ROOT_DIR}}"
+
+vars:
+  CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
+  KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
+  MONITORING_VERSION: '{{.MONITORING_VERSION | default ""}}'
+  MONITORING_PACKAGE: '{{.MONITORING_PACKAGE | default (printf "oci://ghcr.io/opendefence/monitoring:%s" .MONITORING_VERSION)}}'
+  MONITORING_VALUES_FILE: '{{.MONITORING_VALUES_FILE | default ""}}'
+  DASHBOARDS: '{{.DASHBOARDS | default "true"}}'
+
+tasks:
+  install:
+    aliases: [up]
+    desc: Deploy the base package, then monitoring, to the selected current kube-context
+    preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+      - sh: test -n {{.MONITORING_VERSION | shellQuote}} || test {{.MONITORING_PACKAGE | shellQuote}} != 'oci://ghcr.io/opendefence/monitoring:'
+        msg: Set MONITORING_VERSION or MONITORING_PACKAGE before installing monitoring
+    cmds:
+      - task: base:install
+      - zarf package deploy {{.MONITORING_PACKAGE | shellQuote}} --connected --confirm{{if .MONITORING_VALUES_FILE}} --values {{.MONITORING_VALUES_FILE | shellQuote}}{{end}}{{if eq .DASHBOARDS "false"}} --components=-dashboards{{end}}
+
+  remove:
+    aliases: [down]
+    desc: Remove the monitoring package from the selected current kube-context
+    preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+    cmds:
+      - zarf package remove monitoring --confirm
+
+  status:
+    desc: List Zarf packages in the selected current kube-context
+    preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+    cmds:
+      - zarf package list
